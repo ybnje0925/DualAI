@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "DualAI Bridge",
+  "version": "0.2.0",
+  "description": "연결한 DualAI 웹 화면의 질문을 ChatGPT와 Gemini에 전달합니다.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://gemini.google.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "DualAI 웹사이트 연결"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://gemini.google.com/*"
+      ],
+      "js": [
+        "adapters.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

@@ -31,3 +31,27 @@
 두 번째 명령은 실제 서비스 화면을 열고 합성 테스트 쿠키를 확인합니다.
 질문을 전송하거나 비밀번호를 입력하지 않습니다.
 검증용 프로필과 화면 캡처는 `artifacts/`에만 생성됩니다.
+
+## 웹 버전 추가 검증
+
+- 실제 실패 로그: Python 프레임워크 자동 감지 → No python entrypoint found.
+- Vercel 미리보기: 정적 빌드 READY, 홈페이지 HTTP 200 및 DualAI HTML 확인.
+- Node 테스트 5개 통과: 명령/서비스 검증, 긴 질문 보존, 화면 좌표, Vercel 설정, 최소 호스트 권한.
+- 실제 Edge 엔진의 사이트 어댑터 테스트 통과: 한글·코드·긴 질문·빈 줄, 버튼 대안, 초안 보호, 중복 및 불확실한 전송 차단.
+- 실제 Manifest V3 확장을 로드한 통합 테스트 통과: 웹 질문창 → 브리지 → 백그라운드 → 양쪽 입력 어댑터 → 결과 표시.
+- 같은 요청 재전송 차단, 한쪽 실패 격리, 승인된 사이트 연결 해제 후 제어 차단 확인.
+- 확장 ZIP CRC 및 manifest.json 파싱 확인.
+- 브라우저 화면 확인: 초기 설치 안내와 연결 전 버튼 잠금 정상, JavaScript 오류 없음.
+
+전체 확장 통합 테스트는 복사한 테스트 확장에서 서비스 URL만 로컬 fixture로 바꿔 검증합니다.
+실제 사용자 계정 로그인·구독 모델의 답변 수신은 아직 검증하지 않았습니다.
+자동화 브라우저에서는 ChatGPT 보안 확인이 나타날 수 있으며 우회하지 않습니다.
+
+재현:
+
+```powershell
+npm run build
+npm test
+.venv/Scripts/python.exe tests-web/test_browser.py
+.venv/Scripts/python.exe tests-web/test_extension_e2e.py
+```

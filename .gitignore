@@ -5,3 +5,10 @@ dist/
 *.spec
 .test-profile/
 artifacts/
+
+web-dist/
+.vercel/
+node_modules/
+
+.vercel
+.env*
