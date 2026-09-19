@@ -6,7 +6,7 @@
 API 키나 별도 백엔드를 사용하지 않으며 기존 브라우저 계정과 구독을 그대로 사용합니다.
 
 1. 배포된 DualAI 사이트에서 **확장 프로그램 ZIP 다운로드**를 누릅니다.
-2. ZIP을 풀고 Chrome의 `chrome://extensions` 또는 Edge의 `edge://extensions`를 엽니다.
+2. 데스크톱 Chrome/Edge에서 사이트를 엽니다. Codex·ChatGPT 앱 안 브라우저와 휴대폰 브라우저에서는 확장 연결이 지원되지 않습니다. ZIP을 풀고 Chrome의 `chrome://extensions` 또는 Edge의 `edge://extensions`를 엽니다.
 3. 개발자 모드 → **압축해제된 확장 프로그램 로드** → 압축을 푼 폴더를 선택합니다.
 4. DualAI 웹앱 탭에서 확장 아이콘 → **DualAI Bridge** → **이 웹사이트 연결**을 누릅니다. 새 탭에서 열었다면 팝업의 **DualAI 웹앱 열기**를 누르고, 열린 웹앱 탭에서 확장 아이콘을 다시 여세요.
 5. 웹 화면에서 **비교 화면 열기**를 누르고, 각 AI 창에서 직접 로그인합니다.

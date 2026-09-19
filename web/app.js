@@ -75,11 +75,16 @@ async function probe(){
     await rpc("ping",{},1500);connected=true;
     document.body.classList.add("connected");
     $("#connection").textContent="브라우저 연결됨";
+    $("#notice").textContent="";
     const response=await rpc("status",{},6000);
     for(const key of keys) $("#"+key+"-status").textContent=response.results[key].message;
   }catch{
     connected=false;document.body.classList.remove("connected");
-    $("#connection").textContent="확장 프로그램 연결 필요";
+    const mobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    $("#connection").textContent=mobile?"데스크톱 브라우저 필요":"Chrome/Edge 연결 필요";
+    $("#notice").textContent=mobile
+      ? "휴대폰 브라우저에서는 확장 연결을 지원하지 않습니다. 컴퓨터의 Chrome 또는 Edge에서 이 주소를 여세요."
+      : "앱 안 미리보기에서는 브라우저 확장이 연결되지 않습니다. 컴퓨터의 Chrome 또는 Edge에서 이 주소를 열고 확장 아이콘에서 연결하세요.";
   }finally{probing=false;controls();}
 }
 probe();setInterval(probe,3500);
