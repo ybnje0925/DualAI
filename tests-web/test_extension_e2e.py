@@ -63,6 +63,22 @@ async def main():
             assert await sent("chatgpt")==[PROMPT,"second question"]
             assert await sent("gemini")==[PROMPT]
             await page.screenshot(path="artifacts/extension-e2e.png",timeout=8000)
+            # Opening the extension from an unsupported blank/new-tab context
+            # should guide the user to the real deployed web app.
+            await context.route("https://gptgeminiyoung.vercel.app/**",lambda route:route.fulfill(
+                content_type="text/html",body="<title>DualAI fixture</title>"))
+            popup=await context.new_page()
+            extension_root=worker.url.split("/")[2]
+            await popup.goto(f"chrome-extension://{extension_root}/popup.html")
+            assert await popup.locator("#connect").inner_text()=="DualAI 웹앱 열기"
+            await popup.locator("#connect").click()
+            await popup.wait_for_function("location.href.includes('chrome-extension://')")
+            app_tabs=[p for p in context.pages if "gptgeminiyoung.vercel.app" in p.url]
+            for _ in range(40):
+                app_tabs=[p for p in context.pages if "gptgeminiyoung.vercel.app" in p.url]
+                if app_tabs:break
+                await asyncio.sleep(.1)
+            assert app_tabs,"the popup did not open the deployed web app"
             await worker.evaluate("()=>chrome.storage.local.remove('siteOrigin')")
             await page.wait_for_function("document.querySelector('#connection').textContent.includes('연결 필요')",timeout=15000)
             print("PASS: real MV3 bridge -> worker -> both content adapters -> UI; duplicate skip, partial failure, origin revocation")

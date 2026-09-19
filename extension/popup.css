@@ -1,1 +1,4 @@
 body{width:310px;padding:18px;font:14px/1.6 system-ui;color:#193046}h1{font-size:20px}#origin{overflow-wrap:anywhere;background:#eef3f8;padding:10px}button{padding:10px;border:0;border-radius:7px;background:#2464ed;color:white;margin:4px 0;cursor:pointer}#disconnect{background:#e9eef5;color:#193046}#status{white-space:pre-wrap}
+
+[hidden]{display:none!important}
+button:disabled{opacity:.5;cursor:not-allowed}#saved{font-size:12px;color:#277453}

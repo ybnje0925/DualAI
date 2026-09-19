@@ -29,4 +29,5 @@ test("extension has no blanket installed access or cookies/debugger permissions"
  assert.deepEqual(m.host_permissions,["https://chatgpt.com/*","https://gemini.google.com/*"]);
  assert.ok(!m.permissions.includes("cookies"));assert.ok(!m.permissions.includes("debugger"));
  assert.ok(!m.externally_connectable);
+ assert.equal(m.version,"0.2.1");
 });
