@@ -56,7 +56,7 @@ async function sendOne(key,payload) {
     const ready=await content(key,"status");
     if (ready.state!=="ready") return {state:"failed",message:ready.message};
     await chrome.storage.session.set({[entryKey]:{state:"pending",message:"전송 확인 중",at:Date.now()}});
-    const result=await content(key,"send",{prompt:payload.prompt,requestId:payload.requestId});
+    const result=await content(key,"send",{prompt:payload.prompt,requestId:payload.requestId,attachments:payload.attachments||[]});
     await chrome.storage.session.set({[entryKey]:{...result,at:Date.now()}});
     return result;
   } catch {

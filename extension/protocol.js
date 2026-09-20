@@ -10,6 +10,15 @@ export function validate(command, payload={}) {
   if (command === "send") {
     if (typeof payload.prompt !== "string" || !payload.prompt.trim() || payload.prompt.length > 100000) throw new Error("질문은 1~100,000자까지 입력할 수 있습니다.");
     if (typeof payload.requestId !== "string" || !/^[a-zA-Z0-9-]{8,100}$/.test(payload.requestId)) throw new Error("질문 식별자가 올바르지 않습니다.");
+    if (payload.attachments !== undefined) {
+      if (!Array.isArray(payload.attachments) || payload.attachments.length > 10) throw new Error("파일은 한 번에 최대 10개까지 첨부할 수 있습니다.");
+      let total = 0;
+      for (const file of payload.attachments) {
+        if (!file || typeof file.name !== "string" || file.name.length > 255 || typeof file.type !== "string" || typeof file.data !== "string") throw new Error("첨부 파일을 읽지 못했습니다.");
+        total += Math.floor(file.data.length * 3 / 4);
+      }
+      if (total > 15 * 1024 * 1024) throw new Error("첨부 파일 전체 크기는 15MB 이하여야 합니다.");
+    }
   }
   return payload;
 }

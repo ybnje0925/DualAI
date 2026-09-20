@@ -3,8 +3,8 @@
   window.__dualaiSiteAdapter=true;
   const isChat = location.hostname==="chatgpt.com";
   const spec=isChat ? {
-    editors:['#prompt-textarea','[contenteditable="true"][data-placeholder]','textarea[placeholder]'],
-    send:['[data-testid="send-button"]','button[aria-label="Send prompt"]'],
+    editors:['#prompt-textarea','[contenteditable="true"][data-placeholder]','[contenteditable="true"][role="textbox"]','textarea[placeholder]'],
+    send:['button[data-testid="send-button"]','[data-testid="send-button"]','button[aria-label="Send prompt"]','button[aria-label="Send message"]'],
     stop:['[data-testid="stop-button"]','button[aria-label="Stop streaming"]'],
     messages:['[data-message-author-role="user"]']
   } : {
@@ -23,7 +23,11 @@
   const seen=new Map();
   function status() {
     if(find(spec.stop)) return {state:"busy",message:"이전 답변 생성 중"};
-    if(!find(spec.editors)) return {state:"failed",message:"로그인과 페이지 로딩을 확인해 주세요."};
+    if(!find(spec.editors)) {
+      if(isChat && (location.pathname==="/" || document.querySelector('a[href*="/auth/login"],button[data-testid*="login"]')))
+        return {state:"failed",message:"ChatGPT 창에서 계정에 로그인해 주세요."};
+      return {state:"failed",message:"로그인 또는 입력창 로딩을 확인해 주세요."};
+    }
     return {state:"ready",message:"입력창 준비됨"};
   }
   function sendButton() {
@@ -32,6 +36,23 @@
   function count(prompt) {
     const nodes=spec.messages.flatMap(s=>[...document.querySelectorAll(s)]);
     return [...new Set(nodes)].filter(e=>normalized(e.innerText)===normalized(prompt)).length;
+  }
+  async function attachFiles(attachments=[]) {
+    if (!attachments.length) return;
+    const input=[...document.querySelectorAll('input[type="file"]')].find(e=>!e.disabled);
+    if (!input) throw Error("파일 첨부 창을 찾지 못했습니다. 서비스 화면에서 파일을 직접 첨부해 주세요.");
+    const transfer=new DataTransfer();
+    for (const item of attachments) {
+      const binary=atob(item.data), bytes=new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+      transfer.items.add(new File([bytes],item.name,{type:item.type||"application/octet-stream"}));
+    }
+    input.files=transfer.files;
+    input.dispatchEvent(new Event("input",{bubbles:true}));
+    input.dispatchEvent(new Event("change",{bubbles:true}));
+    await sleep(700);
+    const visibleName=attachments.some(file=>document.body.innerText.includes(file.name));
+    if(!visibleName) throw Error("서비스가 파일 첨부를 확인하지 못했습니다. 화면에서 첨부 상태를 확인해 주세요.");
   }
   function fill(editor,prompt) {
     editor.focus();
@@ -51,7 +72,7 @@
       if(line) document.execCommand("insertText",false,line);
     }
   }
-  async function send(prompt,id) {
+  async function send(prompt,id,attachments=[]) {
     if(seen.has(id) && seen.get(id).state!=="failed") return seen.get(id);
     if(busy) return {state:"failed",message:"현재 질문 전송이 끝날 때까지 기다려 주세요."};
     busy=true;
@@ -62,6 +83,7 @@
       if(ready.state!=="ready") throw Error(ready.message);
       const editor=find(spec.editors);
       if(read(editor).trim() && exact(read(editor))!==exact(prompt)) throw Error("서비스 입력창에 작성 중인 글이 있습니다. 먼저 정리해 주세요.");
+      if(attachments.length) await attachFiles(attachments);
       const before=count(prompt);
       fill(editor,prompt);
       await sleep(150);
@@ -97,6 +119,6 @@
   chrome.runtime.onMessage.addListener((m,sender,respond)=>{
     if(sender.id!==chrome.runtime.id || m?.type!=="dualai-site") return;
     if(m.command==="status") {respond(status());return;}
-    if(m.command==="send") {send(m.prompt,m.requestId).then(respond);return true;}
+    if(m.command==="send") {send(m.prompt,m.requestId,m.attachments||[]).then(respond);return true;}
   });
 })();
