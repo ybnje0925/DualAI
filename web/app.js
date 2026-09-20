@@ -26,7 +26,7 @@ function fileData(file){return new Promise((resolve,reject)=>{const reader=new F
 function renderFiles(){const list=$("#file-list");list.textContent=attachments.length?attachments.map(f=>`${f.name} (${(f.size/1024/1024).toFixed(1)}MB)`).join(" · "):"파일은 최대 10개, 전체 15MB까지";}
 function fileKey(files=[]){return files.map(f=>`${f.name}:${f.size}:${f.lastModified}`).join("|");}
 function display(key,result) {
-  const el=$("#"+key+"-result");el.textContent=result.message;el.className=result.state;
+  const el=$("#"+key+"-result");el.textContent=result.message;el.className=result.warning?"partial":result.state;
 }
 async function send(services,retryKey) {
   if(busy || !connected)return;

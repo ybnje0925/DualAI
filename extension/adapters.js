@@ -37,22 +37,38 @@
     const nodes=spec.messages.flatMap(s=>[...document.querySelectorAll(s)]);
     return [...new Set(nodes)].filter(e=>normalized(e.innerText)===normalized(prompt)).length;
   }
+  function deepAll(selector,root=document,out=[]) {
+    for(const node of root.querySelectorAll(selector)) out.push(node);
+    for(const host of root.querySelectorAll("*")) if(host.shadowRoot) deepAll(selector,host.shadowRoot,out);
+    return out;
+  }
   async function attachFiles(attachments=[]) {
-    if (!attachments.length) return;
-    const input=[...document.querySelectorAll('input[type="file"]')].find(e=>!e.disabled);
-    if (!input) throw Error("파일 첨부 창을 찾지 못했습니다. 서비스 화면에서 파일을 직접 첨부해 주세요.");
-    const transfer=new DataTransfer();
-    for (const item of attachments) {
-      const binary=atob(item.data), bytes=new Uint8Array(binary.length);
-      for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
-      transfer.items.add(new File([bytes],item.name,{type:item.type||"application/octet-stream"}));
+    if (!attachments.length) return {ok:true};
+    let inputs=deepAll('input[type="file"]').filter(e=>!e.disabled);
+    // Gemini and ChatGPT can create the upload control only after opening
+    // the composer attachment menu. Never invoke the native file picker.
+    if(!inputs.length) {
+      const button=deepAll('button,[role="button"]').find(e=>visible(e) && /^(add files?|attach files?|upload files?|open upload file menu|파일 첨부|파일 추가|파일 업로드)$/i.test(normalized(e.getAttribute("aria-label")||e.innerText||e.textContent)));
+      if(button) { button.click(); for(let i=0;i<8&&!inputs.length;i++){await sleep(200);inputs=deepAll('input[type="file"]').filter(e=>!e.disabled);} }
     }
-    input.files=transfer.files;
-    input.dispatchEvent(new Event("input",{bubbles:true}));
-    input.dispatchEvent(new Event("change",{bubbles:true}));
-    await sleep(700);
-    const visibleName=attachments.some(file=>document.body.innerText.includes(file.name));
-    if(!visibleName) throw Error("서비스가 파일 첨부를 확인하지 못했습니다. 화면에서 첨부 상태를 확인해 주세요.");
+    const input=inputs.find(e=>e.multiple||attachments.length===1) || inputs[0];
+    if (!input) return {ok:false,message:"파일 첨부 입력창을 찾지 못했습니다. 질문은 전송했으며 파일은 서비스 화면에서 직접 첨부해 주세요."};
+    try {
+      const transfer=new DataTransfer();
+      for (const item of attachments) {
+        const binary=atob(item.data), bytes=new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+        transfer.items.add(new File([bytes],item.name,{type:item.type||"application/octet-stream"}));
+      }
+      input.files=transfer.files;
+      input.dispatchEvent(new Event("input",{bubbles:true}));
+      input.dispatchEvent(new Event("change",{bubbles:true}));
+      await sleep(350);
+      if(input.files?.length!==attachments.length) return {ok:false,message:"파일을 서비스 입력창에 전달하지 못했습니다. 질문은 전송했으며 파일은 화면에서 직접 첨부해 주세요."};
+      return {ok:true,message:"파일 입력값 전달됨 · 서비스 화면에서 첨부를 확인해 주세요."};
+    } catch {
+      return {ok:false,message:"파일 전달을 확인하지 못했습니다. 질문은 전송했으며 파일은 화면에서 직접 첨부해 주세요."};
+    }
   }
   function fill(editor,prompt) {
     editor.focus();
@@ -76,14 +92,14 @@
     if(seen.has(id) && seen.get(id).state!=="failed") return seen.get(id);
     if(busy) return {state:"failed",message:"현재 질문 전송이 끝날 때까지 기다려 주세요."};
     busy=true;
-    let clicked=false,result;
+    let clicked=false,result,attachmentResult={ok:true};
     try {
       if(typeof prompt!=="string" || !prompt.trim() || prompt.length>100000) throw Error("질문 내용을 확인해 주세요.");
       const ready=status();
       if(ready.state!=="ready") throw Error(ready.message);
       const editor=find(spec.editors);
       if(read(editor).trim() && exact(read(editor))!==exact(prompt)) throw Error("서비스 입력창에 작성 중인 글이 있습니다. 먼저 정리해 주세요.");
-      if(attachments.length) await attachFiles(attachments);
+      if(attachments.length) attachmentResult=await attachFiles(attachments);
       const before=count(prompt);
       fill(editor,prompt);
       await sleep(150);
@@ -113,6 +129,8 @@
     } catch(error) {
       result=clicked ? {state:"unknown",message:"전송 여부를 서비스 화면에서 확인해 주세요."} : {state:"failed",message:error.message||"입력 준비에 실패했습니다."};
     } finally {busy=false;}
+    if(!attachmentResult.ok) result={...result,warning:true,message:`${result.message} · ${attachmentResult.message}`};
+    else if(attachments.length && result.state==="success") result={...result,warning:true,message:`${result.message} · 파일 입력값 전달됨, 첨부 상태를 화면에서 확인하세요.`};
     seen.set(id,result);
     return result;
   }
